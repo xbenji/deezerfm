@@ -1,21 +1,3 @@
-// UI Elements
-const frequencyDisplay = document.getElementById('frequency-display');
-const tunerContainer = document.getElementById('tuner-container');
-const tunerScale = document.getElementById('tuner-scale');
-const frequencyMarks = document.getElementById('frequency-marks');
-const frequencyNumbers = document.getElementById('frequency-numbers');
-const startRadioButton = document.getElementById('start-radio');
-
-const tunerRuler = document.getElementById('tuner-ruler');
-const tunerIndicator = document.getElementById('tuner-indicator');
-
-
-// UI Variables
-let scrollLeft;
-let currentFrequency = 88.0;
-const minFrequency = 88.0;
-const maxFrequency = 108.0;
-
 // Audio System Variables
 let audioContext;
 let masterGainNode;
@@ -26,6 +8,10 @@ let crackleGainNode;
 let noiseLowpassFilter;
 let distortionNodes = new Map();
 
+const audioBuffers = new Map();
+const audioSources = new Map();
+const gainNodes = new Map();
+const loadingPromises = new Map();
 
 const stations = [
     { minFreq: 88.1, maxFreq: 89.1, centerFreq: 88.6, url: 'https://cdn-preview-7.dzcdn.net/stream/c-7d29f91f6875494c4104a0c436581293-9.mp3' },
@@ -36,19 +22,9 @@ const stations = [
     { minFreq: 99.1, maxFreq: 99.9, centerFreq: 99.5, url: 'https://cdn-preview-8.dzcdn.net/stream/c-853d19a12a694ccc74b2501acd802500-6.mp3' },
     { minFreq: 100.1, maxFreq: 102.9, centerFreq: 101.5, url: 'https://cdn-preview-e.dzcdn.net/stream/c-e13ff5f840d94463219b5e8399c579c5-1.mp3' },
     { minFreq: 101.6, maxFreq: 103.9, centerFreq: 103.5, url: 'https://cdn-preview-6.dzcdn.net/stream/c-681a1046cb38c82fd090afc132796946-5.mp3' }
-    // Add more stations as needed
 ];
 
-const audioBuffers = new Map();
-const audioSources = new Map();
-const gainNodes = new Map();
-
-
-// Add this new map to track loading promises
-const loadingPromises = new Map();
-
-// Initialize audio system
-async function initAudioSystem() {
+export async function initAudioSystem() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     masterGainNode = audioContext.createGain();
     noiseGainNode = audioContext.createGain();
@@ -60,78 +36,8 @@ async function initAudioSystem() {
 
     createEnhancedNoiseGenerator();
     await preloadAllStations();
-
-    startRadioButton.style.display = 'none';
 }
 
-// Initialize scale
-function createTunerScale() {
-    const scaleElement = document.getElementById('tuner-scale');
-    const totalMarks = (maxFrequency - minFrequency) * 10; // 10 marks per MHz
-    const longMarkInterval = 10; // Every 1 MHz
-
-    for (let i = 0; i <= totalMarks; i++) {
-        const mark = document.createElement('div');
-        mark.className = 'scale-mark';
-        if (i % longMarkInterval === 0) {
-            mark.className += ' long';
-            const label = document.createElement('div');
-            label.className = 'scale-label';
-            const frequency = minFrequency + (i / 10);
-            label.textContent = frequency.toFixed(1);
-            label.style.left = `${i * 20}px`; // Adjust based on your mark width + margin
-            scaleElement.appendChild(label);
-        }
-        scaleElement.appendChild(mark);
-    }
-    
-    // Set the width of the scale
-    scaleElement.style.width = `${totalMarks * 20}px`; // Adjust based on your mark width + margin
-}
-
-// Update frequency based on scale position
-function updateFrequency(position) {
-    const scaleWidth = tunerScale.offsetWidth;
-    const viewportWidth = tunerRuler.offsetWidth;
-    const maxOffset = scaleWidth - viewportWidth;
-    
-    let newPosition = -position;
-    newPosition = Math.max(-maxOffset, Math.min(0, newPosition));
-    
-    tunerScale.style.left = `${newPosition}px`;
-    
-    const centerOffset = -newPosition + (viewportWidth / 2);
-    currentFrequency = minFrequency + (centerOffset / scaleWidth) * (maxFrequency - minFrequency);
-    frequencyDisplay.textContent = currentFrequency.toFixed(1) + ' MHz';
-
-    if (audioContext) {
-        updateAudio(currentFrequency);
-    }
-}
-
-// Event handlers
-let isDragging = false;
-let startX, startScrollLeft;
-
-function handleStart(e) {
-    isDragging = true;
-    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-    startScrollLeft = tunerScale.offsetLeft;
-    tunerRuler.style.cursor = 'grabbing';
-}
-
-function handleMove(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-    const walk = (x - startX) * 2; // Adjust the multiplier for sensitivity
-    updateFrequency(startScrollLeft + walk);
-}
-
-function handleEnd() {
-    isDragging = false;
-    tunerRuler.style.cursor = 'grab';
-}
 
 // Audio System Functions
 function createEnhancedNoiseGenerator() {
@@ -291,7 +197,7 @@ function calculateSignalStrength(frequency, station) {
     return Math.max(0, 1 - (distance / range) ** 2); // Quadratic falloff for sharper tuning
 }
 
-async function updateAudio(frequency) {
+export async function updateAudio(frequency) {
     const activeStations = getStationsAtFrequency(frequency);
     
     if (activeStations.length > 0) {
@@ -336,35 +242,6 @@ async function updateAudio(frequency) {
     }
 }
 
-// Event Listeners
-tunerRuler.addEventListener('mousedown', handleStart);
-tunerRuler.addEventListener('touchstart', handleStart, { passive: false });
-
-document.addEventListener('mousemove', handleMove);
-document.addEventListener('touchmove', handleMove, { passive: false });
-
-document.addEventListener('mouseup', handleEnd);
-document.addEventListener('touchend', handleEnd);
-
-// Prevent default behavior on the tuner
-tunerRuler.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-tunerRuler.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-tunerRuler.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
-
-// Handle autoplay policy
-startRadioButton.addEventListener('click', () => {
-    initAudioSystem().then(() => {
-        audioContext.resume().then(() => {
-            console.log('Audio context started');
-            updateAudio(currentFrequency);
-        });
-    });
-});
-
-// Initialize frequency display
-document.addEventListener('DOMContentLoaded', () => {
-    createTunerScale();
-    const initialOffset = (tunerRuler.offsetWidth / 2) - (minFrequency * 20 * 10); // Center 88.0 MHz
-    tunerScale.style.left = `${initialOffset}px`;
-    updateFrequency(-initialOffset);
-});
+export function resumeAudioContext() {
+    return audioContext.resume();
+}
