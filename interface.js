@@ -9,7 +9,7 @@ let currentFrequency = 88.0;
 const minFrequency = 88.0;
 const maxFrequency = 108.0;
 const totalMarks = (maxFrequency - minFrequency) * 10; // 10 marks per MHz
-const scaleWidth = totalMarks * 20; // 20px per mark
+const scaleWidth = totalMarks * 12; // 15px per mark
 
 // Dragging state
 let isDragging = false;
@@ -29,7 +29,7 @@ export function createTunerScale() {
             label.className = 'scale-label';
             const frequency = minFrequency + (i / 10);
             label.textContent = frequency.toFixed(1);
-            label.style.left = `${i * 20}px`; // 20px per mark
+            label.style.left = `${i * 12}px`; // 20px per mark
             scaleElement.appendChild(label);
         }
         scaleElement.appendChild(mark);

@@ -39,7 +39,7 @@ body {
     width: 2px;
     background-color: #00ff00;
     height: 20px;
-    margin-right: 18px; /* Adjust based on your preference */
+    margin-right: 10px; /* Adjust based on your preference */
     flex-shrink: 0;
 }
 .scale-mark.long {
@@ -47,7 +47,7 @@ body {
 }
 .scale-label {
     position: absolute;
-    bottom: 45px;
+    bottom: 50px;
     transform: translateX(-50%);
     font-size: 24px;
 }

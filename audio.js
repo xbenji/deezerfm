@@ -17,11 +17,11 @@ const stations = [
     { minFreq: 88.1, maxFreq: 89.1, centerFreq: 88.6, url: 'https://cdn-preview-7.dzcdn.net/stream/c-7d29f91f6875494c4104a0c436581293-9.mp3' },
     { minFreq: 88.7, maxFreq: 89.5, centerFreq: 89.1, url: 'https://cdn-preview-f.dzcdn.net/stream/c-f05a8997d71daf74eafe02b6e8f5a70d-3.mp3' },
     { minFreq: 92.1, maxFreq: 94.1, centerFreq: 92.0, url: 'https://cdn-preview-b.dzcdn.net/stream/c-b01196ead36bde3feb73981f0e3a7926-1.mp3' },
-    // { minFreq: 95.1, maxFreq: 97.1, centerFreq: 96.5, url: 'https://cdn-preview-7.dzcdn.net/stream/c-7860662c366d9725dc734908cedcf948-2.mp3' },
-    // { minFreq: 96.6, maxFreq: 98.9, centerFreq: 98.0, url: 'https://cdn-preview-9.dzcdn.net/stream/c-9655c46e463961b93d8f9733de00b0d2-6.mp3' },
-    // { minFreq: 99.1, maxFreq: 99.9, centerFreq: 99.5, url: 'https://cdn-preview-8.dzcdn.net/stream/c-853d19a12a694ccc74b2501acd802500-6.mp3' },
-    // { minFreq: 100.1, maxFreq: 102.9, centerFreq: 101.5, url: 'https://cdn-preview-e.dzcdn.net/stream/c-e13ff5f840d94463219b5e8399c579c5-1.mp3' },
-    // { minFreq: 101.6, maxFreq: 103.9, centerFreq: 103.5, url: 'https://cdn-preview-6.dzcdn.net/stream/c-681a1046cb38c82fd090afc132796946-5.mp3' }
+    { minFreq: 95.1, maxFreq: 97.1, centerFreq: 96.5, url: 'https://cdn-preview-7.dzcdn.net/stream/c-7860662c366d9725dc734908cedcf948-2.mp3' },
+    { minFreq: 96.6, maxFreq: 98.9, centerFreq: 98.0, url: 'https://cdn-preview-9.dzcdn.net/stream/c-9655c46e463961b93d8f9733de00b0d2-6.mp3' },
+    { minFreq: 99.1, maxFreq: 99.9, centerFreq: 99.5, url: 'https://cdn-preview-8.dzcdn.net/stream/c-853d19a12a694ccc74b2501acd802500-6.mp3' },
+    { minFreq: 100.1, maxFreq: 102.9, centerFreq: 101.5, url: 'https://cdn-preview-e.dzcdn.net/stream/c-e13ff5f840d94463219b5e8399c579c5-1.mp3' },
+    { minFreq: 101.6, maxFreq: 103.9, centerFreq: 103.5, url: 'https://cdn-preview-6.dzcdn.net/stream/c-681a1046cb38c82fd090afc132796946-5.mp3' }
 ];
 
 export async function initAudioSystem() {
@@ -70,7 +70,7 @@ function createEnhancedNoiseGenerator() {
 
             // Add more prominent crackles
             if (Math.random() < 0.005) {  // Increased probability
-                const crackleIntensity = Math.random() * 0.5 + 3.5;  // Stronger effect
+                const crackleIntensity = Math.random() * 0.5 + 13.5;  // Stronger effect
                 outputL[i] += (Math.random() - 0.5) * crackleIntensity;
                 outputR[i] += (Math.random() - 0.5) * crackleIntensity;
             }
