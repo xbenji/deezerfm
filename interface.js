@@ -38,17 +38,35 @@ export function createTunerScale() {
     scaleElement.style.width = `${totalMarks * 20}px`; // Adjust based on your mark width + margin
 }
 
+function frequencyToPosition(frequency) {
+    return (frequency - minFrequency) * 200; // 200px per MHz
+}
+
+function positionToFrequency(position) {
+    return minFrequency + position / 200;
+}
+
 export function updateFrequency(position) {
     const scaleWidth = tunerScale.offsetWidth;
     const viewportWidth = tunerRuler.offsetWidth;
-    const maxOffset = scaleWidth - viewportWidth;
+    const maxScroll = scaleWidth - viewportWidth;
 
-    let newPosition = Math.max(-maxOffset, Math.min(0, position));
-    
+    // Calculate the position range that allows full frequency access
+    const minPosition = -frequencyToPosition(maxFrequency) + viewportWidth / 2;
+    const maxPosition = -frequencyToPosition(minFrequency) + viewportWidth / 2;
+
+    // Constrain the position to allow full frequency range access
+    let newPosition = Math.max(minPosition, Math.min(maxPosition, position));
+
     tunerScale.style.transform = `translateX(${newPosition}px)`;
 
+    // Calculate frequency based on the center of the viewport
     const centerOffset = -newPosition + (viewportWidth / 2);
-    currentFrequency = minFrequency + (centerOffset / scaleWidth) * (maxFrequency - minFrequency);
+    currentFrequency = positionToFrequency(centerOffset);
+
+    // Clamp the frequency to the valid range
+    currentFrequency = Math.max(minFrequency, Math.min(maxFrequency, currentFrequency));
+
     frequencyDisplay.textContent = currentFrequency.toFixed(1) + ' MHz';
 
     return currentFrequency;
@@ -81,7 +99,7 @@ function smoothScroll() {
         const currentPosition = parseFloat(tunerScale.style.transform.replace('translateX(', '')) || 0;
         const targetPosition = Math.round(currentPosition / 20) * 20; // Snap to nearest mark
         const diff = targetPosition - currentPosition;
-        
+
         if (Math.abs(diff) > 0.5) {
             const newPosition = currentPosition + diff * 0.1;
             updateFrequency(newPosition);
@@ -92,8 +110,8 @@ function smoothScroll() {
 
 export function initializeInterface(onFrequencyChange) {
     createTunerScale();
-    const initialOffset = (tunerRuler.offsetWidth / 2) - (minFrequency * 20 * 10); // Center 88.0 MHz
-    updateFrequency(-initialOffset);
+    const initialOffset = -frequencyToPosition(88.0) + tunerRuler.offsetWidth / 2;
+    updateFrequency(initialOffset);
 
     tunerRuler.addEventListener('mousedown', handleStart);
     tunerRuler.addEventListener('touchstart', handleStart, { passive: false });
