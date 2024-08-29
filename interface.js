@@ -8,6 +8,8 @@ const startRadioButton = document.getElementById('start-radio');
 let currentFrequency = 88.0;
 const minFrequency = 88.0;
 const maxFrequency = 108.0;
+const totalMarks = (maxFrequency - minFrequency) * 10; // 10 marks per MHz
+const scaleWidth = totalMarks * 20; // 20px per mark
 
 // Dragging state
 let isDragging = false;
@@ -16,7 +18,6 @@ let animationFrameId = null;
 
 export function createTunerScale() {
     const scaleElement = document.getElementById('tuner-scale');
-    const totalMarks = (maxFrequency - minFrequency) * 10; // 10 marks per MHz
     const longMarkInterval = 10; // Every 1 MHz
 
     for (let i = 0; i <= totalMarks; i++) {
@@ -28,29 +29,32 @@ export function createTunerScale() {
             label.className = 'scale-label';
             const frequency = minFrequency + (i / 10);
             label.textContent = frequency.toFixed(1);
-            label.style.left = `${i * 20}px`; // Adjust based on your mark width + margin
+            label.style.left = `${i * 20}px`; // 20px per mark
             scaleElement.appendChild(label);
         }
         scaleElement.appendChild(mark);
     }
 
-    // Set the width of the scale
-    scaleElement.style.width = `${totalMarks * 20}px`; // Adjust based on your mark width + margin
+    scaleElement.style.width = `${scaleWidth}px`;
 }
 
 function frequencyToPosition(frequency) {
-    return (frequency - minFrequency) * 200; // 200px per MHz
+    return (frequency - minFrequency) / (maxFrequency - minFrequency) * scaleWidth;
 }
 
 function positionToFrequency(position) {
-    return minFrequency + position / 200;
+    console.log("isDragging", isDragging);
+    console.log("position", position);
+    console.log("scaleWidth", scaleWidth);
+    console.log("minFrequency", minFrequency);
+    console.log("maxFrequency", maxFrequency);
+    return minFrequency + (position / scaleWidth) * (maxFrequency - minFrequency);
+    
 }
 
 export function updateFrequency(position) {
-    const scaleWidth = tunerScale.offsetWidth;
     const viewportWidth = tunerRuler.offsetWidth;
-    const maxScroll = scaleWidth - viewportWidth;
-
+    
     // Calculate the position range that allows full frequency access
     const minPosition = -frequencyToPosition(maxFrequency) + viewportWidth / 2;
     const maxPosition = -frequencyToPosition(minFrequency) + viewportWidth / 2;
@@ -97,13 +101,27 @@ function handleEnd() {
 function smoothScroll() {
     if (!isDragging) {
         const currentPosition = parseFloat(tunerScale.style.transform.replace('translateX(', '')) || 0;
-        const targetPosition = Math.round(currentPosition / 20) * 20; // Snap to nearest mark
+        const viewportWidth = tunerRuler.offsetWidth;
+        const centerOffset = -currentPosition + (viewportWidth / 2);
+        
+        // Calculate the current frequency based on position
+        let currentFreq = positionToFrequency(centerOffset);
+        
+        // Round to the nearest 0.1 MHz
+        const targetFreq = Math.round(currentFreq * 10) / 10;
+        
+        // Convert target frequency back to position
+        const targetPosition = -frequencyToPosition(targetFreq) + viewportWidth / 2;
+        
         const diff = targetPosition - currentPosition;
 
         if (Math.abs(diff) > 0.5) {
-            const newPosition = currentPosition + diff * 0.1;
+            const newPosition = currentPosition + diff * 0.3; // Increased speed for smoother snapping
             updateFrequency(newPosition);
             animationFrameId = requestAnimationFrame(smoothScroll);
+        } else {
+            // Ensure we snap exactly to the target position
+            updateFrequency(targetPosition);
         }
     }
 }
