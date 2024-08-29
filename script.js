@@ -1,11 +1,17 @@
 // UI Elements
 const frequencyDisplay = document.getElementById('frequency-display');
-const tunerRuler = document.getElementById('tuner-ruler');
-const tunerIndicator = document.getElementById('tuner-indicator');
+const tunerContainer = document.getElementById('tuner-container');
+const tunerScale = document.getElementById('tuner-scale');
+const frequencyMarks = document.getElementById('frequency-marks');
+const frequencyNumbers = document.getElementById('frequency-numbers');
 const startRadioButton = document.getElementById('start-radio');
 
+const tunerRuler = document.getElementById('tuner-ruler');
+const tunerIndicator = document.getElementById('tuner-indicator');
+
+
 // UI Variables
-let isDragging = false;
+let scrollLeft;
 let currentFrequency = 88.0;
 const minFrequency = 88.0;
 const maxFrequency = 108.0;
@@ -58,11 +64,11 @@ async function initAudioSystem() {
     startRadioButton.style.display = 'none';
 }
 
-// UI Functions
+// Initialize scale
 function createTunerScale() {
     const scaleElement = document.getElementById('tuner-scale');
-    const totalMarks = 100;
-    const longMarkInterval = 10;
+    const totalMarks = (maxFrequency - minFrequency) * 10; // 10 marks per MHz
+    const longMarkInterval = 10; // Every 1 MHz
 
     for (let i = 0; i <= totalMarks; i++) {
         const mark = document.createElement('div');
@@ -71,47 +77,60 @@ function createTunerScale() {
             mark.className += ' long';
             const label = document.createElement('div');
             label.className = 'scale-label';
-            label.textContent = (minFrequency + (i / totalMarks) * (maxFrequency - minFrequency)).toFixed(0);
-            label.style.left = `${(i / totalMarks) * 100}%`;
+            const frequency = minFrequency + (i / 10);
+            label.textContent = frequency.toFixed(1);
+            label.style.left = `${i * 20}px`; // Adjust based on your mark width + margin
             scaleElement.appendChild(label);
         }
         scaleElement.appendChild(mark);
     }
+    
+    // Set the width of the scale
+    scaleElement.style.width = `${totalMarks * 20}px`; // Adjust based on your mark width + margin
 }
 
+// Update frequency based on scale position
 function updateFrequency(position) {
-    const width = tunerRuler.offsetWidth - tunerIndicator.offsetWidth;
-    currentFrequency = minFrequency + (position / width) * (maxFrequency - minFrequency);
+    const scaleWidth = tunerScale.offsetWidth;
+    const viewportWidth = tunerRuler.offsetWidth;
+    const maxOffset = scaleWidth - viewportWidth;
+    
+    let newPosition = -position;
+    newPosition = Math.max(-maxOffset, Math.min(0, newPosition));
+    
+    tunerScale.style.left = `${newPosition}px`;
+    
+    const centerOffset = -newPosition + (viewportWidth / 2);
+    currentFrequency = minFrequency + (centerOffset / scaleWidth) * (maxFrequency - minFrequency);
     frequencyDisplay.textContent = currentFrequency.toFixed(1) + ' MHz';
-    tunerIndicator.style.left = position + 'px';
 
     if (audioContext) {
         updateAudio(currentFrequency);
     }
 }
 
-function setIndicatorPosition(clientX) {
-    const rect = tunerRuler.getBoundingClientRect();
-    let newLeft = clientX - rect.left - tunerIndicator.offsetWidth / 2;
-    newLeft = Math.max(0, Math.min(newLeft, tunerRuler.offsetWidth - tunerIndicator.offsetWidth));
-    updateFrequency(newLeft);
-}
+// Event handlers
+let isDragging = false;
+let startX, startScrollLeft;
 
 function handleStart(e) {
     isDragging = true;
-    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    setIndicatorPosition(clientX);
+    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    startScrollLeft = tunerScale.offsetLeft;
+    tunerRuler.style.cursor = 'grabbing';
 }
 
 function handleMove(e) {
     if (!isDragging) return;
     e.preventDefault();
-    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    setIndicatorPosition(clientX);
+    const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    const walk = (x - startX) * 2; // Adjust the multiplier for sensitivity
+    updateFrequency(startScrollLeft + walk);
 }
 
 function handleEnd() {
     isDragging = false;
+    tunerRuler.style.cursor = 'grab';
 }
 
 // Audio System Functions
@@ -345,5 +364,7 @@ startRadioButton.addEventListener('click', () => {
 // Initialize frequency display
 document.addEventListener('DOMContentLoaded', () => {
     createTunerScale();
-    updateFrequency(0);
+    const initialOffset = (tunerRuler.offsetWidth / 2) - (minFrequency * 20 * 10); // Center 88.0 MHz
+    tunerScale.style.left = `${initialOffset}px`;
+    updateFrequency(-initialOffset);
 });
