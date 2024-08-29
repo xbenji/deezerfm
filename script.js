@@ -59,11 +59,32 @@ async function initAudioSystem() {
 }
 
 // UI Functions
+function createTunerScale() {
+    const scaleElement = document.getElementById('tuner-scale');
+    const totalMarks = 100;
+    const longMarkInterval = 10;
+
+    for (let i = 0; i <= totalMarks; i++) {
+        const mark = document.createElement('div');
+        mark.className = 'scale-mark';
+        if (i % longMarkInterval === 0) {
+            mark.className += ' long';
+            const label = document.createElement('div');
+            label.className = 'scale-label';
+            label.textContent = (minFrequency + (i / totalMarks) * (maxFrequency - minFrequency)).toFixed(0);
+            label.style.left = `${(i / totalMarks) * 100}%`;
+            scaleElement.appendChild(label);
+        }
+        scaleElement.appendChild(mark);
+    }
+}
+
 function updateFrequency(position) {
     const width = tunerRuler.offsetWidth - tunerIndicator.offsetWidth;
     currentFrequency = minFrequency + (position / width) * (maxFrequency - minFrequency);
     frequencyDisplay.textContent = currentFrequency.toFixed(1) + ' MHz';
-    
+    tunerIndicator.style.left = position + 'px';
+
     if (audioContext) {
         updateAudio(currentFrequency);
     }
@@ -73,7 +94,6 @@ function setIndicatorPosition(clientX) {
     const rect = tunerRuler.getBoundingClientRect();
     let newLeft = clientX - rect.left - tunerIndicator.offsetWidth / 2;
     newLeft = Math.max(0, Math.min(newLeft, tunerRuler.offsetWidth - tunerIndicator.offsetWidth));
-    tunerIndicator.style.left = newLeft + 'px';
     updateFrequency(newLeft);
 }
 
@@ -323,4 +343,7 @@ startRadioButton.addEventListener('click', () => {
 });
 
 // Initialize frequency display
-updateFrequency(0);
+document.addEventListener('DOMContentLoaded', () => {
+    createTunerScale();
+    updateFrequency(0);
+});

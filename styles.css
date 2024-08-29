@@ -1,48 +1,66 @@
-html, body {
-    overflow: hidden;
-    position: fixed;
-    height: 100%;
-    width: 100%;
-    touch-action: none;
-}
-
 body {
-    font-family: Arial, sans-serif;
+    background-color: #000;
+    color: #00ff00;
+    font-family: 'Digital', Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100vh;
     margin: 0;
-    background-color: #f0f0f0;
+    overflow: hidden;
 }
-
 .radio-tuner {
-    width: 320px;
+    width: 600px;
     text-align: center;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
 }
-
 #frequency-display {
-    font-size: 24px;
+    font-size: 48px;
     margin-bottom: 20px;
 }
-
 #tuner-ruler {
     width: 100%;
-    height: 50px;
-    background-color: #ddd;
+    height: 80px;
+    background-color: #000;
     position: relative;
     overflow: hidden;
-    touch-action: none;
 }
-
-#tuner-indicator {
-    width: 10px;
-    height: 50px;
-    background-color: #ff0000;
+#tuner-scale {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 10px;
+}
+.scale-mark {
+    width: 2px;
+    background-color: #00ff00;
+    height: 20px;
+}
+.scale-mark.long {
+    height: 40px;
+}
+.scale-label {
     position: absolute;
+    bottom: 45px;
+    transform: translateX(-50%);
+    font-size: 24px;
+}
+#tuner-indicator {
+    width: 4px;
+    height: 80px;
+    background-color: #ff6600;
+    position: absolute;
+    top: 0;
     left: 0;
+    cursor: pointer;
+}
+#start-radio {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #00ff00;
+    color: #000;
+    border: none;
     cursor: pointer;
 }
