@@ -1,8 +1,11 @@
+import { stations } from './audio.js';
+
 // UI Elements
 const frequencyDisplay = document.getElementById('frequency-display');
 const tunerScale = document.getElementById('tuner-scale');
 const tunerRuler = document.getElementById('tuner-ruler');
 const startRadioButton = document.getElementById('start-radio');
+
 
 // UI Variables
 let currentFrequency = 88.0;
@@ -42,14 +45,17 @@ function frequencyToPosition(frequency) {
     return (frequency - minFrequency) / (maxFrequency - minFrequency) * scaleWidth;
 }
 
+function isValidFrequency(frequency) {
+    const tolerance = 0.09; // MHz
+    let st = stations.filter(station => Math.abs(frequency - station.centerFreq))
+    if (st.length > 0) {
+        console.log(st.map(s => [ s.centerFreq, Math.abs(frequency - s.centerFreq)]));
+    }
+    return stations.some(station => Math.abs(frequency - station.centerFreq) < tolerance);
+}
+
 function positionToFrequency(position) {
-    console.log("isDragging", isDragging);
-    console.log("position", position);
-    console.log("scaleWidth", scaleWidth);
-    console.log("minFrequency", minFrequency);
-    console.log("maxFrequency", maxFrequency);
     return minFrequency + (position / scaleWidth) * (maxFrequency - minFrequency);
-    
 }
 
 export function updateFrequency(position) {
@@ -72,6 +78,13 @@ export function updateFrequency(position) {
     currentFrequency = Math.max(minFrequency, Math.min(maxFrequency, currentFrequency));
 
     frequencyDisplay.textContent = currentFrequency.toFixed(1) + ' MHz';
+
+    // Update frequency display
+    if (isValidFrequency(currentFrequency)) {
+        frequencyDisplay.classList.add('on');
+    } else {
+        frequencyDisplay.classList.remove('on');
+    }
 
     return currentFrequency;
 }

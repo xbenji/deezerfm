@@ -14,9 +14,18 @@ body {
     text-align: center;
     position: relative;
 }
+.frequency-display-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
 #frequency-display {
     font-size: 48px;
-    margin-bottom: 20px;
+    transition: text-shadow 0.1s ease;
+}
+#frequency-display.on {
+    text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
 }
 #tuner-ruler {
     width: 100%;
