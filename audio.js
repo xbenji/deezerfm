@@ -25,7 +25,9 @@ export const stations = [
     { minFreq: 103.6, maxFreq: 104.4, centerFreq: 104.0, url: 'https://cdn-preview-3.dzcdn.net/stream/c-3837c00105bab4f22d14b6b2f4b23c56-1.mp3' }
 ];
 
-export async function initAudioSystem() {
+let audioInitialized = false;
+
+export async function initAudioSystem(progressCallback) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     masterGainNode = audioContext.createGain();
     noiseGainNode = audioContext.createGain();
@@ -35,23 +37,32 @@ export async function initAudioSystem() {
     lowpassFilter.connect(masterGainNode);
     masterGainNode.connect(audioContext.destination);
 
+    // Create noise generator but don't start it yet
     createEnhancedNoiseGenerator();
-    await preloadAllStations();
+
+    // Preload stations with progress reporting
+    const totalStations = stations.length;
+    for (let i = 0; i < totalStations; i++) {
+        await loadAudio(stations[i].url);
+        progressCallback(Math.round((i + 1) / totalStations * 100));
+    }
+
+    // Set the audioInitialized flag to true
+    audioInitialized = true;
 }
 
 
 // Audio System Functions
 function createEnhancedNoiseGenerator() {
     const bufferSize = 4096;
-    
+
     noiseProcessor = audioContext.createScriptProcessor(bufferSize, 1, 2);
     noiseGainNode = audioContext.createGain();
     crackleGainNode = audioContext.createGain();
     noiseLowpassFilter = audioContext.createBiquadFilter();
 
     noiseLowpassFilter.type = 'lowpass';
-    noiseLowpassFilter.frequency.setValueAtTime(2000, audioContext.currentTime); // Fixed frequency
-
+    noiseLowpassFilter.frequency.setValueAtTime(2000, audioContext.currentTime);
 
     let lastOut = 0;
     noiseProcessor.onaudioprocess = function(e) {
@@ -62,7 +73,7 @@ function createEnhancedNoiseGenerator() {
             const white = Math.random() * 2 - 1;
             const pink = (lastOut + (0.02 * white)) / 1.02;
             const brown = (lastOut + (0.1 * white)) / 1.1;
-            
+
             lastOut = (white * 0.4 + pink * 0.4 + brown * 0.2);
 
             // Add subtle stereo effect
@@ -70,19 +81,13 @@ function createEnhancedNoiseGenerator() {
             outputR[i] = lastOut * 0.9 + (Math.random() * 2 - 1) * 0.1;
 
             // Add more prominent crackles
-            if (Math.random() < 0.005) {  // Increased probability
-                const crackleIntensity = Math.random() * 0.5 + 13.5;  // Stronger effect
+            if (Math.random() < 0.005) {
+                const crackleIntensity = Math.random() * 0.5 + 13.5;
                 outputL[i] += (Math.random() - 0.5) * crackleIntensity;
                 outputR[i] += (Math.random() - 0.5) * crackleIntensity;
             }
         }
     };  
-
-    noiseProcessor.connect(noiseGainNode);
-    noiseProcessor.connect(crackleGainNode);
-    noiseGainNode.connect(noiseLowpassFilter);
-    noiseLowpassFilter.connect(audioContext.destination);
-    crackleGainNode.connect(audioContext.destination);
 
     // Subtle amplitude modulation for signal fading effect
     const fadeOsc = audioContext.createOscillator();
@@ -199,8 +204,13 @@ function calculateSignalStrength(frequency, station) {
 }
 
 export async function updateAudio(frequency) {
+    if (!audioInitialized) {
+        console.warn('Audio system not initialized yet. Skipping update.');
+        return;
+    }
+
     const activeStations = getStationsAtFrequency(frequency);
-    
+
     if (activeStations.length > 0) {
         let totalSignalStrength = 0;
         let maxSignalStrength = 0;
@@ -219,19 +229,19 @@ export async function updateAudio(frequency) {
             if (station) {
                 const signalStrength = calculateSignalStrength(frequency, station);
                 const normalizedStrength = signalStrength / totalSignalStrength;
-                
+
                 // Smooth transition for volume
                 gainNode.gain.setTargetAtTime(normalizedStrength, audioContext.currentTime, 0.3);
-                
+
                 // Apply distortion based on signal strength
-                const distortionAmount = Math.max(0, 1 - signalStrength) * 200; // Adjust the multiplier for desired effect
+                const distortionAmount = Math.max(0, 1 - signalStrength) * 200;
                 const distortionNode = distortionNodes.get(url);
                 distortionNode.curve = createDistortionCurve(distortionAmount);
             } else {
                 gainNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.3);
             }
         }
-        
+
         // Update noise based on the strongest signal
         updateNoise(maxSignalStrength);
     } else {
@@ -240,6 +250,24 @@ export async function updateAudio(frequency) {
         for (const gainNode of gainNodes.values()) {
             gainNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.3);
         }
+    }
+
+    // Start the noise generator if it hasn't been started yet
+    if (!noiseStarted) {
+        startNoiseGenerator();
+    }
+}
+
+let noiseStarted = false;
+
+function startNoiseGenerator() {
+    if (!noiseStarted) {
+        noiseProcessor.connect(noiseGainNode);
+        noiseProcessor.connect(crackleGainNode);
+        noiseGainNode.connect(noiseLowpassFilter);
+        noiseLowpassFilter.connect(audioContext.destination);
+        crackleGainNode.connect(audioContext.destination);
+        noiseStarted = true;
     }
 }
 

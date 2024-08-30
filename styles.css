@@ -9,6 +9,50 @@ body {
     margin: 0;
     overflow: hidden;
 }
+
+.screen {
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+#welcome-screen h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+#start-radio {
+    font-size: 24px;
+    padding: 10px 20px;
+    background-color: #00ff00;
+    color: #000;
+    border: none;
+    cursor: pointer;
+}
+
+#loading-indicator {
+    margin-top: 20px;
+}
+
+#progress-bar {
+    width: 60%;
+    height: 20px;
+    background-color: #333;
+    margin-bottom: 10px;
+}
+
+#progress-bar::before {
+    content: '';
+    display: block;
+    height: 100%;
+    background-color: #00ff00;
+    width: 0;
+    transition: width 0.5s;
+}
+
+#loading-text {
+    font-size: 18px;
+}
 .radio-tuner {
     width: 100%;
     text-align: center;
