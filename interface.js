@@ -17,7 +17,14 @@ const scaleWidth = totalMarks * 12; // 15px per mark
 // Dragging state
 let isDragging = false;
 let startX, startScrollLeft;
+let currentX, currentScrollLeft;
 let animationFrameId = null;
+
+// Inertia variables
+let velocity = 0;
+const friction = 0.95;
+const minVelocity = 0.1;
+
 
 export function createTunerScale() {
     const scaleElement = document.getElementById('tuner-scale');
@@ -46,11 +53,7 @@ function frequencyToPosition(frequency) {
 }
 
 function isValidFrequency(frequency) {
-    const tolerance = 0.09; // MHz
-    let st = stations.filter(station => Math.abs(frequency - station.centerFreq))
-    if (st.length > 0) {
-        console.log(st.map(s => [ s.centerFreq, Math.abs(frequency - s.centerFreq)]));
-    }
+    const tolerance = 0.09; // MHz  
     return stations.some(station => Math.abs(frequency - station.centerFreq) < tolerance);
 }
 
@@ -60,7 +63,7 @@ function positionToFrequency(position) {
 
 export function updateFrequency(position) {
     const viewportWidth = tunerRuler.offsetWidth;
-    
+
     // Calculate the position range that allows full frequency access
     const minPosition = -frequencyToPosition(maxFrequency) + viewportWidth / 2;
     const maxPosition = -frequencyToPosition(minFrequency) + viewportWidth / 2;
@@ -93,7 +96,9 @@ function handleStart(e) {
     isDragging = true;
     startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
     startScrollLeft = parseFloat(tunerScale.style.transform.replace('translateX(', '')) || 0;
-    tunerRuler.style.cursor = 'grabbing';
+    currentX = startX;
+    currentScrollLeft = startScrollLeft;
+    velocity = 0;
     cancelAnimationFrame(animationFrameId);
 }
 
@@ -101,41 +106,56 @@ function handleMove(e) {
     if (!isDragging) return;
     e.preventDefault();
     const x = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-    const walk = (x - startX) * 2; // Adjust the multiplier for sensitivity
-    const newPosition = startScrollLeft + walk;
+    const dx = x - currentX;
+    currentX = x;
+    const newPosition = currentScrollLeft + dx;
+    currentScrollLeft = newPosition;
+    velocity = dx;
     return updateFrequency(newPosition);
 }
 
 function handleEnd() {
+    if (!isDragging) return;
     isDragging = false;
-    tunerRuler.style.cursor = 'grab';
+    applyInertia();
+}
+
+function applyInertia() {
+    if (Math.abs(velocity) < minVelocity) {
+        smoothScroll();
+        return;
+    }
+
+    velocity *= friction;
+    currentScrollLeft += velocity;
+    updateFrequency(currentScrollLeft);
+
+    animationFrameId = requestAnimationFrame(applyInertia);
 }
 
 function smoothScroll() {
-    if (!isDragging) {
-        const currentPosition = parseFloat(tunerScale.style.transform.replace('translateX(', '')) || 0;
-        const viewportWidth = tunerRuler.offsetWidth;
-        const centerOffset = -currentPosition + (viewportWidth / 2);
-        
-        // Calculate the current frequency based on position
-        let currentFreq = positionToFrequency(centerOffset);
-        
-        // Round to the nearest 0.1 MHz
-        const targetFreq = Math.round(currentFreq * 10) / 10;
-        
-        // Convert target frequency back to position
-        const targetPosition = -frequencyToPosition(targetFreq) + viewportWidth / 2;
-        
-        const diff = targetPosition - currentPosition;
+    const currentPosition = parseFloat(tunerScale.style.transform.replace('translateX(', '')) || 0;
+    const viewportWidth = tunerRuler.offsetWidth;
+    const centerOffset = -currentPosition + (viewportWidth / 2);
 
-        if (Math.abs(diff) > 0.5) {
-            const newPosition = currentPosition + diff * 0.3; // Increased speed for smoother snapping
-            updateFrequency(newPosition);
-            animationFrameId = requestAnimationFrame(smoothScroll);
-        } else {
-            // Ensure we snap exactly to the target position
-            updateFrequency(targetPosition);
-        }
+    // Calculate the current frequency based on position
+    let currentFreq = positionToFrequency(centerOffset);
+
+    // Round to the nearest 0.1 MHz
+    const targetFreq = Math.round(currentFreq * 10) / 10;
+
+    // Convert target frequency back to position
+    const targetPosition = -frequencyToPosition(targetFreq) + viewportWidth / 2;
+
+    const diff = targetPosition - currentPosition;
+
+    if (Math.abs(diff) > 0.5) {
+        const newPosition = currentPosition + diff * 0.3; // Increased speed for smoother snapping
+        updateFrequency(newPosition);
+        animationFrameId = requestAnimationFrame(smoothScroll);
+    } else {
+        // Ensure we snap exactly to the target position
+        updateFrequency(targetPosition);
     }
 }
 
@@ -144,8 +164,8 @@ export function initializeInterface(onFrequencyChange) {
     const initialOffset = -frequencyToPosition(88.0) + tunerRuler.offsetWidth / 2;
     updateFrequency(initialOffset);
 
-    tunerRuler.addEventListener('mousedown', handleStart);
-    tunerRuler.addEventListener('touchstart', handleStart, { passive: false });
+    document.addEventListener('mousedown', handleStart);
+    document.addEventListener('touchstart', handleStart, { passive: false });
 
     document.addEventListener('mousemove', (e) => {
         const newFrequency = handleMove(e);
@@ -156,14 +176,8 @@ export function initializeInterface(onFrequencyChange) {
         if (newFrequency) onFrequencyChange(newFrequency);
     }, { passive: false });
 
-    document.addEventListener('mouseup', () => {
-        handleEnd();
-        smoothScroll();
-    });
-    document.addEventListener('touchend', () => {
-        handleEnd();
-        smoothScroll();
-    });
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchend', handleEnd);
 
     // Prevent default behavior on the tuner
     tunerRuler.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });

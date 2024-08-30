@@ -35,7 +35,7 @@ body {
 }
 
 #progress-bar {
-    width: 60%;
+    width: 0%;
     height: 20px;
     background-color: #333;
     margin-bottom: 10px;
