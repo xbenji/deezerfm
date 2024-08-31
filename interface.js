@@ -114,9 +114,20 @@ function handleMove(e) {
     return updateFrequency(newPosition);
 }
 
-function handleEnd() {
+function handleEnd(e) {
     if (!isDragging) return;
     isDragging = false;
+    
+    // Add this block to handle touch events differently
+    if (e.type === 'touchend') {
+        const touchThreshold = 2; // pixels
+        if (Math.abs(velocity) < touchThreshold) {
+            velocity = 0;
+            smoothScroll();
+            return;
+        }
+    }
+    
     applyInertia();
 }
 
