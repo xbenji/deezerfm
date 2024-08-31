@@ -67,9 +67,11 @@ body {
 #frequency-display {
     font-size: 48px;
     transition: text-shadow 0.1s ease;
+    color: #b8ffb8;
 }
 #frequency-display.on {
     text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+    color: #00ff00;
 }
 #tuner-ruler {
     width: 100%;
